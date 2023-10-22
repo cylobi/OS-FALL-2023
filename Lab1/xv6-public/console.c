@@ -201,6 +201,10 @@ void
 consoleintr(int (*getc)(void))
 {
   int c, doprocdump = 0;
+  int pos;
+  int i;
+  char a[18]="\033[2J\033[1;1H";
+  char d;
 
   acquire(&cons.lock);
   while((c = getc()) >= 0){
@@ -223,7 +227,34 @@ consoleintr(int (*getc)(void))
       }
       break;
     case C('L'):  // Clear the screen
-      cprintf("\033[2J");
+      i=0;
+      while(i<14)
+      {
+      d=a[i];
+      uartputc(d);	//function writing to ubuntu terminal.	
+        i++;		
+      }
+      //clearing Xv6 shell
+      //screen resolution of terminal is 25*80.Therefore shift by 25 newlines.		
+      i=0;		
+      while(i<=24	)
+      {
+        cgaputc('\n');//writing to qemu 
+        i=i+1;
+      }	
+      //shifting cursor position to top left(in xv6 shell)
+      //outb header found in x86.h	
+      pos=0;
+      outb(CRTPORT, 14);
+      outb(CRTPORT+1, pos>>8);
+      outb(CRTPORT, 15);
+      outb(CRTPORT+1, pos);
+    
+      cgaputc('$');
+      cgaputc(' ');
+      uartputc('$');
+      uartputc(' ');	
+      
       break;
     case C('F'): 
       if(input.e != input.w && input.buf[(input.e-1) % INPUT_BUF] != '\n') {
@@ -235,26 +266,19 @@ consoleintr(int (*getc)(void))
       break;
     case C('B'):  // CTRL+B
       if(input.e != input.w && input.buf[(input.w) % INPUT_BUF] != '\n') {
-          char leftmost_char = input.buf[(input.w) % INPUT_BUF];  // Store the leftmost character
-          memmove(&input.buf[(input.w) % INPUT_BUF], &input.buf[(input.w) % INPUT_BUF] + 1, input.e - input.w - 1);  // Shift all characters one position to the left
-          input.buf[(input.e-1) % INPUT_BUF] = leftmost_char;  // Insert the leftmost character at the end
+        memmove(&input.buf[(input.w + 1) % INPUT_BUF], &input.buf[(input.w) % INPUT_BUF], input.e - input.w);
+        input.w = (input.w - 1) % INPUT_BUF;
       }
       break;
-    case '\033':  // Escape character
-      c = getc();
-      if(c == '['){
-        c = getc();
-        if(c == 'A'){  // Up arrow
-          if(history.count > 0){
-            history.current = (history.current - 1 + HISTORY_COUNT) % HISTORY_COUNT;
-            strcpy(&input.buf[input.w % INPUT_BUF], history.buf[history.current]);
-          }
-        } else if(c == 'B'){  // Down arrow
-          if(history.count > 0){
-            history.current = (history.current + 1) % HISTORY_COUNT;
-            strcpy(&input.buf[input.w % INPUT_BUF], history.buf[history.current]);
-          }
-        }
+    case 226:  
+      if(history.count > 0){
+        history.current = (history.current - 1 + HISTORY_COUNT) % HISTORY_COUNT;
+        strcpy(&input.buf[input.w % INPUT_BUF], history.buf[history.current]);
+      }
+    case 227:
+      if(history.count > 0){
+        history.current = (history.current + 1) % HISTORY_COUNT;
+        strcpy(&input.buf[input.w % INPUT_BUF], history.buf[history.current]);
       }
       break;
     default:
