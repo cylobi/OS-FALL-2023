@@ -266,8 +266,8 @@ consoleintr(int (*getc)(void))
       break;
     case C('B'):  // CTRL+B
       if(input.e != input.w && input.buf[(input.w) % INPUT_BUF] != '\n') {
-        memmove(&input.buf[(input.w + 1) % INPUT_BUF], &input.buf[(input.w) % INPUT_BUF], input.e - input.w);
-        input.w = (input.w - 1) % INPUT_BUF;
+        memmove(&input.buf[(input.e + 1) % INPUT_BUF], &input.buf[(input.e) % INPUT_BUF], input.w - input.e);
+        input.e = (input.e - 1) % INPUT_BUF;
       }
       break;
     case 226:  
@@ -291,7 +291,7 @@ consoleintr(int (*getc)(void))
             int len = input.e - input.w;
             if(len > HISTORY_LEN - 1)
               len = HISTORY_LEN - 1;
-            memmove(history.buf[history.count % HISTORY_COUNT], &input.buf[input.w % INPUT_BUF], len);
+            memmove(history.buf[history.count % HISTORY_COUNT], &input.buf[input.r % INPUT_BUF], len);
             history.buf[history.count % HISTORY_COUNT][len] = '\0';
             history.count++;
           }
