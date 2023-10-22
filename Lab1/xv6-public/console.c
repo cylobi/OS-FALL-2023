@@ -223,7 +223,7 @@ consoleintr(int (*getc)(void))
       }
       break;
     case C('L'):  // Clear the screen
-      printf(1, "\033[2J");
+      consputc(1, "\033[2J");
       break;
     case C('F'): 
       if(input.e != input.w && input.buf[(input.e-1) % INPUT_BUF] != '\n') {
