@@ -351,3 +351,12 @@ consoleinit(void)
   ioapicenable(IRQ_KBD, 0);
 }
 
+void strcpy(char *dest, const char *src) {
+    while(*src) {
+        *dest = *src;
+        src++;
+        dest++;
+    }
+    *dest = '\0';
+}
+
