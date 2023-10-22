@@ -222,24 +222,22 @@ consoleintr(int (*getc)(void))
         consputc(BACKSPACE);
       }
       break;
-    case C('B'):  // Move cursor back one character
-      if(input.e != input.w){
-        input.e--;
-        consputc(BACKSPACE);
-        consputc(input.buf[input.e % INPUT_BUF]);
-        consputc(BACKSPACE);
-      }
-      break;
-    case C('F'):  // Move cursor forward one character
-      if(input.e != input.w){
-        input.e++;
-        consputc(input.buf[input.e % INPUT_BUF]);
-      }
-      break;
     case C('L'):  // Clear the screen
-      while(input.e != input.w){
-        input.e--;
-        consputc(BACKSPACE);
+      printf("\033[2J");
+      break;
+    case C('F'): 
+      if(input.e != input.w && input.buf[(input.e-1) % INPUT_BUF] != '\n') {
+          char rightmost_char = input.buf[(input.e-1) % INPUT_BUF]; 
+          memmove(&input.buf[input.w % INPUT_BUF] + 1, &input.buf[input.w % INPUT_BUF], input.e - input.w); 
+          input.buf[input.w % INPUT_BUF] = rightmost_char;  
+          input.e++;  
+      }
+      break;
+    case C('B'):  // CTRL+B
+      if(input.e != input.w && input.buf[(input.w) % INPUT_BUF] != '\n') {
+          char leftmost_char = input.buf[(input.w) % INPUT_BUF];  // Store the leftmost character
+          memmove(&input.buf[(input.w) % INPUT_BUF], &input.buf[(input.w) % INPUT_BUF] + 1, input.e - input.w - 1);  // Shift all characters one position to the left
+          input.buf[(input.e-1) % INPUT_BUF] = leftmost_char;  // Insert the leftmost character at the end
       }
       break;
     case '\033':  // Escape character
