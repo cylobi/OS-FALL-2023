@@ -127,6 +127,9 @@ panic(char *s)
 #define BACKSPACE 0x100
 #define CRTPORT 0x3d4
 static ushort *crt = (ushort*)P2V(0xb8000);  // CGA memory
+int edited_index = 0;
+static int end = -1;
+
 
 static void
 cgaputc(int c)
@@ -138,6 +141,23 @@ cgaputc(int c)
   pos = inb(CRTPORT+1) << 8;
   outb(CRTPORT, 15);
   pos |= inb(CRTPORT+1);
+
+  if (pos < end && c == BACKSPACE) {
+    for (int i = pos ; i < end ; i++) {
+      crt[i-1] = crt[i];
+    }
+    end -= 1;
+    edited_index -= 1;
+    crt[end] = ' ' | 0x0700;
+  }
+
+  if (pos < end && c != BACKSPACE) {
+    for (int i = end ; i >= pos ; i--) {
+      crt[i+1] = crt[i];
+    } 
+    end += 1;
+    edited_index += 1;
+  }
 
   if(c == '\n')
     pos += 80 - pos%80;
@@ -256,20 +276,43 @@ consoleintr(int (*getc)(void))
       uartputc(' ');	
       
       break;
+    case C('B'): 
+      outb(CRTPORT, 14);
+      pos = inb(CRTPORT+1) << 8;
+      outb(CRTPORT, 15);
+      pos |= inb(CRTPORT+1); 
+      if (pos > end) {
+        end = pos;
+        edited_index = input.e;
+      }
+      if(input.e != input.w){
+        input.e--;
+        pos--;
+      }
+      outb(CRTPORT, 14);
+      outb(CRTPORT+1, pos>>8);
+      outb(CRTPORT, 15);
+      outb(CRTPORT+1, pos);
+      break;
     case C('F'): 
-      if(input.e != input.w && input.buf[(input.e-1) % INPUT_BUF] != '\n') {
-          char rightmost_char = input.buf[(input.e-1) % INPUT_BUF]; 
-          memmove(&input.buf[input.w % INPUT_BUF] + 1, &input.buf[input.w % INPUT_BUF], input.e - input.w); 
-          input.buf[input.w % INPUT_BUF] = rightmost_char;  
-          input.e++;  
+      outb(CRTPORT, 14);
+      pos = inb(CRTPORT+1) << 8;
+      outb(CRTPORT, 15);
+      pos |= inb(CRTPORT+1); 
+      if (pos > end) {
+        end = pos;
+        edited_index = input.e;
       }
-      break;
-    case C('B'):  // CTRL+B
-      if(input.e != input.w && input.buf[(input.w) % INPUT_BUF] != '\n') {
-        memmove(&input.buf[(input.e + 1) % INPUT_BUF], &input.buf[(input.e) % INPUT_BUF], input.w - input.e);
-        input.e = (input.e - 1) % INPUT_BUF;
+      if(input.e != input.w){
+        input.e++;
+        pos++;
       }
+      outb(CRTPORT, 14);
+      outb(CRTPORT+1, pos>>8);
+      outb(CRTPORT, 15);
+      outb(CRTPORT+1, pos);
       break;
+
     case 226:  
       if(history.count > 0){
         history.current = (history.current - 1 + HISTORY_COUNT) % HISTORY_COUNT;

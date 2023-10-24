@@ -16,12 +16,10 @@ main(int argc, char *argv[])
   char result[16];
   int i;
 
-  for(i = 0; i < 15; i++){
-    char c1 = (i < strlen(s1)) ? s1[i] : 'z' + 1;
-    char c2 = (i < strlen(s2)) ? s2[i] : 'z' + 1;
-    result[i] = (c1 >= c2) ? '0' : '1';
+  for(i = 0; i < strlen(s2); i++){
+    result[i] = (s1[i] >= s2[i]) ? '0' : '1';
   }
-  result[15] = '\0';
+  result[strlen(s2)] = '\0';
 
   int fd = open("strdiff_result.txt", O_CREATE | O_WRONLY);
   if(fd < 0){
